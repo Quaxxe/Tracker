@@ -14,6 +14,16 @@ AT+CGPSINFO
 AT+CGPSAUTO=1
 ```
 
+```
+AT+CGATT=1
+AT+CGDCONT=1,"IP","web","0.0.0.0"
+AT+CGACT=1,1
+AT+CGPADDR=1
+AT+CPSI?
+AT+NETOPEN
+AT+IPADDR
+```
+
 ### Links
 
 * [TinyGSM](https://github.com/vshymanskyy/TinyGSM) library
