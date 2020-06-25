@@ -1,5 +1,7 @@
 #include "Adafruit_FONA.h"
 #include <SoftwareSerial.h>
+#include <SPI.h>
+#include <SD.h>
 
 #define SIMCOM_3G
 
@@ -7,12 +9,15 @@
 #define FONA_TX 3
 #define FONA_RST 4
 #define FONA_PWRKEY 5
+const int chipSelect = 10;
 
 SoftwareSerial fonaSS(FONA_TX, FONA_RX);
 
 Adafruit_FONA_3G fona = Adafruit_FONA_3G(FONA_RST);
 
 char imei[16] = {0}; // MUST use a 16 character buffer for IMEI!
+
+File dataFile;
 
 
 void setup() {
@@ -29,7 +34,7 @@ void setup() {
 
     if (! fona.begin(fonaSS)) {
         Serial.println(F("Couldn't find FONA"));
-        while(1);
+        while (1);
     }
     Serial.println(F("FONA is OK"));
 
@@ -52,6 +57,19 @@ void setup() {
     delay(1000);
 
     fona.enableGPRS(true);
+
+    Serial.print("Initializing SD card...");
+
+    // see if the card is present and can be initialized:
+    if (!SD.begin(chipSelect)) {
+        Serial.println("Card failed, or not present");
+        // don't do anything more:
+        while (1);
+    }
+    Serial.println("card initialized.");
+
+    dataFile = SD.open("datalog.txt", FILE_WRITE);
+
 }
 
 void loop() {
@@ -59,10 +77,11 @@ void loop() {
 
     // fona.getNetworkInfo();
 
-    float latitude, longitude, speed_kph, heading, altitude;
+    float latitude, longitude, speed_kph, heading, altitude, second;
+    uint8_t hour, minute;
 
     // if you ask for an altitude reading, getGPS will return false if there isn't a 3D fix
-    boolean gps_success = fona.getGPS(&latitude, &longitude, &speed_kph, &heading, &altitude);
+    boolean gps_success = fona.getGPS(&latitude, &longitude, &speed_kph, &heading, &altitude, NULL, NULL, NULL, &hour, &minute, &second);
 
     if (gps_success) {
 
@@ -88,10 +107,11 @@ void loop() {
     char URL[150];
     char latBuff[16];
     char lonBuff[16];
+    char timBuff[256];
 
     // Format the floating point numbers as needed
-    dtostrf(latitude, 1, 3, latBuff); // float_val, min_width, digits_after_decimal, char_buffer
-    dtostrf(longitude, 1, 3, lonBuff);
+    dtostrf(latitude, 1, 6, latBuff); // float_val, min_width, digits_after_decimal, char_buffer
+    dtostrf(longitude, 1, 6, lonBuff);
 
     // Construct the appropriate URL's and body, depending on request type
     // Use IMEI as device ID for this example
@@ -102,4 +122,12 @@ void loop() {
     if (!fona.postData("www.dweet.io", 443, "HTTPS", URL)) // Server, port, connection type, URL
         Serial.println(F("Failed to complete HTTP/HTTPS request..."));
 
+
+    //dataFile.println((String) hour + ":" + minute + ":" + scond
+
+    sprintf(timBuff, "%02d:%02d:%02d;%+08.5f;%+08.5f\n",
+            hour, minute, second, latitude, longitude);
+
+    dataFile.write(timBuff);
+    //datFile.flush(); //nur für Test delay auf 10 Sekunden
 }
