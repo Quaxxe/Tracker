@@ -1083,6 +1083,7 @@ boolean Adafruit_FONA::getGPS(float *lat, float *lon, float *speed_kph, float *h
     return false;
 
   if (_type == SIM5320A || _type == SIM5320E || _type == SIM7500A || _type == SIM7500E || _type == SIM7600A || _type == SIM7600C || _type == SIM7600E) {
+    
     // Parse 3G respose
     // +CGPSINFO:4043.000000,N,07400.000000,W,151015,203802.1,-12.0,0.0,0
     // skip beginning
@@ -1104,10 +1105,25 @@ boolean Adafruit_FONA::getGPS(float *lat, float *lon, float *speed_kph, float *h
     char *longdir = strtok(NULL, ",");
     if (! longdir) return false;
 
-    // skip date & time
-    tok = strtok(NULL, ",");
+    // skip date
     tok = strtok(NULL, ",");
 
+    //grab time
+    tok = strtok(NULL, ",");
+    // Seconds
+      char *ptr = tok + 4;
+      *sec = atof(ptr);
+      
+      // Minutes
+      ptr[0] = 0;
+      ptr = tok + 2;
+      *min = atoi(ptr);
+
+      // Hours
+      ptr[0] = 0;
+      ptr = tok;
+      *hour = atoi(ptr);
+    
    // only grab altitude if needed
     if (altitude != NULL) {
       // grab altitude
@@ -1164,7 +1180,7 @@ boolean Adafruit_FONA::getGPS(float *lat, float *lon, float *speed_kph, float *h
   					 _type == SIM7500A || _type == SIM7500E || _type == SIM7600A || _type == SIM7600C || _type == SIM7600E) {
     // Parse 808 V2 response.  See table 2-3 from here for format:
     // http://www.adafruit.com/datasheets/SIM800%20Series_GNSS_Application%20Note%20V1.00.pdf
-
+    
     // skip GPS run status
     char *tok = strtok(gpsbuffer, ",");
     if (! tok) return false;
